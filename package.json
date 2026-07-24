@@ -1,0 +1,10 @@
+{
+  "name": "skillvault",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web"
+  }
+}

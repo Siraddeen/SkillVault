@@ -1,0 +1,22 @@
+{
+  "name": "bigquery-export",
+  "version": "1.0.0",
+  "description": "Phase 5. Purpose: periodically export `usage_events` from Postgres/Supabase into BigQuery for analysis (most-viewed lessons, retention, conversion Free -> Premium).",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google-cloud/bigquery": "^8.3.1",
+    "@supabase/supabase-js": "^2.110.8"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "^7.0.2"
+  }
+}

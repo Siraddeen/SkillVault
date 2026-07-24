@@ -1,0 +1,13 @@
+node_modules/
+.env*
+!.env.example
+.next/
+dist/
+build/
+.supabase/
+*.log
+.DS_Store
+Thumbs.db
+.vercel/
+*.tsbuildinfo
+coverage/
