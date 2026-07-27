@@ -1,29 +1,18 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser, getCurrentUserProfile } from "@/lib/supabase/session";
 import { AdminClient } from "./admin-client";
 
 export default async function AdminPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+
+  const [user, profile] = await Promise.all([
+    getCurrentUser(),
+    getCurrentUserProfile(),
+  ]);
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
-
   if (!profile?.is_admin) redirect("/dashboard");
-
-  // const [{ data: courses }, { data: users }] = await Promise.all([
-  //   supabase
-  //     .from("courses")
-  //     .select("*")
-  //     .order("created_at", { ascending: false }),
-  //   supabase.rpc("admin_list_users"),
-  // ]);
 
   const [{ data: courses }, { data: users, error: usersError }] =
     await Promise.all([

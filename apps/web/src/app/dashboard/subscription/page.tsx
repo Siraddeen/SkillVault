@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserTier } from "@/lib/supabase/session";
 import { SubscriptionClient } from "./subscription-client";
 
 // Matches supabase/migrations/create_orders.sql exactly.
@@ -13,22 +14,14 @@ type Plan = {
 export default async function SubscriptionPage() {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: tierData, error: tierError } = user
-    ? await supabase.rpc("current_user_tier", { uid: user.id })
-    : { data: null, error: null };
-
-  const currentTier: Plan["name"] =
-    tierError || !tierData ? "free" : (String(tierData).toLowerCase() as Plan["name"]);
-
-  const { data: plans, error: plansError } = await supabase
-    .from("plans")
-    .select("id, name, price, currency, features")
-    .eq("is_active", true)
-    .order("price", { ascending: true });
+  const [currentTier, { data: plans, error: plansError }] = await Promise.all([
+    getCurrentUserTier() as Promise<Plan["name"]>,
+    supabase
+      .from("plans")
+      .select("id, name, price, currency, features")
+      .eq("is_active", true)
+      .order("price", { ascending: true }),
+  ]);
 
   if (plansError) {
     return (

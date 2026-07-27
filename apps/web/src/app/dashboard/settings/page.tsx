@@ -1,19 +1,13 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { getCurrentUser, getCurrentUserProfile } from "@/lib/supabase/session";
 import { AvatarUploader } from "./avatar-uploader";
 
 export default async function SettingsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [user, profile] = await Promise.all([
+    getCurrentUser(),
+    getCurrentUserProfile(),
+  ]);
   if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("avatar_url")
-    .eq("id", user.id)
-    .single();
 
   return (
     <div className="max-w-3xl space-y-8 animate-fade-in-up">

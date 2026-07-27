@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserTier } from "@/lib/supabase/session";
 import { RecordView } from "./record-view";
 
 // Matches supabase/migrations/xxxx_create_courses.sql exactly.
@@ -40,26 +41,19 @@ export default async function CourseDetailPage({
   const { slug } = await params;
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: course, error: courseError } = await supabase
-    .from("courses")
-    .select("id, slug, title, description, tier")
-    .eq("slug", slug)
-    .single<Course>();
+  // Course lookup and tier lookup don't depend on each other — run together.
+  const [{ data: course, error: courseError }, userTier] = await Promise.all([
+    supabase
+      .from("courses")
+      .select("id, slug, title, description, tier")
+      .eq("slug", slug)
+      .single<Course>(),
+    getCurrentUserTier() as Promise<Course["tier"]>,
+  ]);
 
   if (courseError || !course) {
     notFound();
   }
-
-  const { data: tierData, error: tierError } = user
-    ? await supabase.rpc("current_user_tier", { uid: user.id })
-    : { data: null, error: null };
-
-  const userTier: Course["tier"] =
-    tierError || !tierData ? "free" : (String(tierData).toLowerCase() as Course["tier"]);
 
   const locked = (TIER_RANK[course.tier] ?? 0) > (TIER_RANK[userTier] ?? 0);
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserTier } from "@/lib/supabase/session";
 
 // Matches supabase/migrations/xxxx_create_courses.sql exactly.
 type Course = {
@@ -26,22 +27,16 @@ const TIER_LABEL: Record<Course["tier"], string> = {
 export default async function CoursesPage() {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: tierData, error: tierError } = user
-    ? await supabase.rpc("current_user_tier", { uid: user.id })
-    : { data: null, error: null };
-
-  const userTier: Course["tier"] =
-    tierError || !tierData ? "free" : (String(tierData).toLowerCase() as Course["tier"]);
-
-  const { data: courses, error: coursesError } = await supabase
-    .from("courses")
-    .select("id, slug, title, description, thumbnail_url, tier")
-    .order("tier", { ascending: true })
-    .order("title", { ascending: true });
+  // Reuses the layout's cached call this request — plus runs alongside
+  // the courses query instead of waiting for it first.
+  const [userTier, { data: courses, error: coursesError }] = await Promise.all([
+    getCurrentUserTier() as Promise<Course["tier"]>,
+    supabase
+      .from("courses")
+      .select("id, slug, title, description, thumbnail_url, tier")
+      .order("tier", { ascending: true })
+      .order("title", { ascending: true }),
+  ]);
 
   if (coursesError) {
     return (

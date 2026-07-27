@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser, getCurrentUserProfile, getCurrentUserTier } from "@/lib/supabase/session";
 import { signOut } from "./actions";
 
 export default async function DashboardLayout({
@@ -8,27 +8,18 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
 
-  const { data: tier, error: tierError } = await supabase.rpc(
-    "current_user_tier",
-    { uid: user.id },
-  );
-
-  const tierLabel = tierError || !tier ? "free" : String(tier).toLowerCase();
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
+  // Independent of each other once we have the user, so run in parallel
+  // instead of one-after-another.
+  const [tierLabel, profile] = await Promise.all([
+    getCurrentUserTier(),
+    getCurrentUserProfile(),
+  ]);
 
   const navLinks = [
     { href: "/dashboard", label: "Overview" },

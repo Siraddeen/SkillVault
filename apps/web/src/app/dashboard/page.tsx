@@ -1,17 +1,15 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser, getCurrentUserTier } from "@/lib/supabase/session";
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Both reuse the layout's cached calls this request — no extra
+  // network round trips here.
+  const [user, tier] = await Promise.all([
+    getCurrentUser(),
+    getCurrentUserTier(),
+  ]);
 
-  const { data: tier } = await supabase.rpc("current_user_tier", {
-    uid: user?.id ?? "",
-  });
-
-  const tierName = tier ? String(tier).toUpperCase() : "FREE";
+  const tierName = tier.toUpperCase();
 
   const quickLinks = [
     {
