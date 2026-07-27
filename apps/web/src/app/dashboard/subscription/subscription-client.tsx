@@ -57,9 +57,6 @@ export function SubscriptionClient({
     setLoadingPlan(plan.name);
 
     try {
-      // 1. Ask our create-order function for a Razorpay order.
-      //    supabase.functions.invoke automatically attaches the current
-      //    session's access token as the Authorization header.
       const { data: orderData, error: orderError } =
         await supabase.functions.invoke("create-order", {
           body: { plan: plan.name },
@@ -69,7 +66,6 @@ export function SubscriptionClient({
         throw new Error(orderError?.message ?? "Could not create order");
       }
 
-      // 2. Load Razorpay's checkout script on demand.
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
         throw new Error("Could not load payment gateway. Check your connection.");
@@ -79,7 +75,6 @@ export function SubscriptionClient({
         data: { user },
       } = await supabase.auth.getUser();
 
-      // 3. Open the checkout modal.
       const razorpay = new window.Razorpay({
         key: orderData.key_id,
         amount: orderData.amount,
@@ -93,9 +88,6 @@ export function SubscriptionClient({
           razorpay_payment_id: string;
           razorpay_signature: string;
         }) => {
-          // 4. Fast-path confirmation. The razorpay-webhook function is the
-          // authoritative source of truth if this call never fires (e.g.
-          // user closes the tab right after paying).
           const { data: verifyData, error: verifyError } =
             await supabase.functions.invoke("verify-payment", {
               body: {
@@ -112,14 +104,12 @@ export function SubscriptionClient({
             return;
           }
 
-          // 5. Success — re-fetch the server component so the tier badge,
-          // plan list, etc. all reflect the new subscription.
           router.refresh();
         },
         modal: {
           ondismiss: () => setLoadingPlan(null),
         },
-        theme: { color: "#4f46e5" },
+        theme: { color: "#6366f1" },
       });
 
       razorpay.open();
@@ -131,65 +121,101 @@ export function SubscriptionClient({
   }
 
   return (
-    <div>
+    <div className="space-y-6 animate-fade-in-up">
       {error && (
-        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {error}
+        <div className="p-4 rounded-xl border border-red-500/20 bg-red-500/10 text-xs font-medium text-red-400 flex items-center gap-3">
+          <svg className="w-5 h-5 text-red-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>{error}</span>
         </div>
       )}
 
-      <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
         {plans.map((plan) => {
           const isCurrent = plan.name === currentTier;
-          const isDowngrade = TIER_RANK[plan.name] < TIER_RANK[currentTier];
+          const isDowngrade = (TIER_RANK[plan.name] ?? 0) < (TIER_RANK[currentTier] ?? 0);
+          const isPopular = plan.name === "premium";
           const priceLabel =
             plan.price === 0
               ? "Free"
-              : `₹${(plan.price / 100).toLocaleString("en-IN")}/mo`;
+              : `₹${(plan.price / 100).toLocaleString("en-IN")}`;
 
           return (
             <div
               key={plan.id}
-              className={`rounded-lg border bg-white p-5 shadow-sm ${
-                isCurrent ? "border-indigo-300 ring-1 ring-indigo-200" : "border-gray-200"
+              className={`relative overflow-hidden rounded-2xl border p-6 flex flex-col justify-between transition-all duration-200 ${
+                isCurrent
+                  ? "border-indigo-500 bg-indigo-950/20 shadow-xl shadow-indigo-500/10 ring-1 ring-indigo-500/50"
+                  : isPopular
+                    ? "border-zinc-700 bg-zinc-900/80 hover:border-zinc-600 shadow-xl"
+                    : "border-zinc-800 bg-zinc-900/50 hover:border-zinc-700 shadow-lg"
               }`}
             >
-              <div className="flex items-center justify-between">
-                <h2 className="font-semibold capitalize text-gray-900">
-                  {plan.name}
-                </h2>
-                {isCurrent && (
-                  <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
-                    Current plan
+              {isCurrent && (
+                <div className="absolute top-0 right-0 rounded-bl-xl bg-indigo-600 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm">
+                  Active Tier
+                </div>
+              )}
+
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold uppercase tracking-wide text-white">
+                    {plan.name}
+                  </h2>
+                </div>
+
+                <div className="flex items-baseline gap-1 mb-6">
+                  <span className="text-3xl font-extrabold text-white tracking-tight">
+                    {priceLabel}
                   </span>
-                )}
+                  {plan.price > 0 && <span className="text-xs text-zinc-400">/ month</span>}
+                </div>
+
+                <div className="space-y-3 pt-4 border-t border-zinc-800/80 mb-8">
+                  <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+                    Included Capabilities:
+                  </div>
+                  {Object.entries(plan.features).map(([key, value]) => (
+                    <div key={key} className="flex items-start gap-2.5 text-xs text-zinc-300">
+                      <svg className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>
+                        <span className="font-medium capitalize text-white">{key.replace(/_/g, " ")}</span>:{" "}
+                        <span className="text-zinc-400">{String(value)}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
-
-              <p className="mt-2 text-2xl font-bold text-gray-900">
-                {priceLabel}
-              </p>
-
-              <ul className="mt-4 space-y-1 text-sm text-gray-600">
-                {Object.entries(plan.features).map(([key, value]) => (
-                  <li key={key}>
-                    {key}: {String(value)}
-                  </li>
-                ))}
-              </ul>
 
               <button
                 type="button"
                 disabled={isCurrent || isDowngrade || loadingPlan !== null || plan.price === 0}
                 onClick={() => handleUpgrade(plan)}
-                className="mt-5 w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                aria-label={isCurrent ? `${plan.name} is your current plan` : `Upgrade to ${plan.name} plan`}
+                className={`w-full rounded-xl py-3 text-xs font-semibold shadow-lg transition-all duration-150 flex items-center justify-center gap-2 ${
+                  isCurrent
+                    ? "bg-zinc-800 text-zinc-400 cursor-not-allowed border border-zinc-700/50"
+                    : isDowngrade
+                      ? "bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-800"
+                      : "bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white shadow-indigo-600/20"
+                }`}
               >
+                {loadingPlan === plan.name && (
+                  <svg className="w-4 h-4 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                )}
                 {isCurrent
-                  ? "Current plan"
+                  ? "Current Active Plan"
                   : isDowngrade
-                    ? "Not available"
+                    ? "Tier Managed by Admin"
                     : loadingPlan === plan.name
-                      ? "Processing…"
-                      : `Upgrade to ${plan.name}`}
+                      ? "Initializing Razorpay..."
+                      : `Upgrade to ${plan.name.toUpperCase()}`}
               </button>
             </div>
           );
@@ -198,3 +224,4 @@ export function SubscriptionClient({
     </div>
   );
 }
+

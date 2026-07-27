@@ -44,8 +44,6 @@ export default async function CourseDetailPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // `courses` is public metadata (courses_select_public), so this always
-  // returns the course regardless of tier — see xxxx_relax_courses_rls.sql.
   const { data: course, error: courseError } = await supabase
     .from("courses")
     .select("id, slug, title, description, tier")
@@ -61,14 +59,10 @@ export default async function CourseDetailPage({
     : { data: null, error: null };
 
   const userTier: Course["tier"] =
-    tierError || !tierData ? "free" : (String(tierData) as Course["tier"]);
+    tierError || !tierData ? "free" : (String(tierData).toLowerCase() as Course["tier"]);
 
-  const locked = TIER_RANK[course.tier] > TIER_RANK[userTier];
+  const locked = (TIER_RANK[course.tier] ?? 0) > (TIER_RANK[userTier] ?? 0);
 
-  // `lessons` stays tier-gated (lessons_select_by_parent_course_tier) — if
-  // the user's tier is below the course's tier, RLS silently returns zero
-  // rows here rather than an error, which is why we compare tiers above
-  // instead of relying on an empty array to mean "locked".
   const { data: lessons } = locked
     ? { data: [] as Lesson[] }
     : await supabase
@@ -79,90 +73,116 @@ export default async function CourseDetailPage({
         .returns<Lesson[]>();
 
   return (
-    <div>
+    <div className="max-w-4xl mx-auto space-y-8">
       {!locked && <RecordView courseId={course.id} />}
 
-      <Link
-        href="/dashboard/courses"
-        className="text-sm text-gray-500 hover:text-gray-900"
-      >
-        ← Back to courses
-      </Link>
-
-      <div className="mt-3 flex items-center gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">{course.title}</h1>
-        <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
-            course.tier === "premium"
-              ? "bg-indigo-100 text-indigo-700"
-              : course.tier === "basic"
-                ? "bg-blue-100 text-blue-700"
-                : "bg-gray-100 text-gray-600"
-          }`}
+      {/* Navigation Breadcrumb */}
+      <div>
+        <Link
+          href="/dashboard/courses"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-zinc-400 hover:text-white transition-colors"
         >
-          {course.tier}
-        </span>
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+          </svg>
+          Back to Course Catalog
+        </Link>
       </div>
 
-      {course.description && (
-        <p className="mt-2 text-sm text-gray-500">{course.description}</p>
-      )}
+      {/* Header Banner */}
+      <div className="p-8 rounded-2xl bg-zinc-900/60 border border-zinc-800 shadow-xl relative overflow-hidden">
+        <div className="flex items-start justify-between gap-4 mb-3">
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">{course.title}</h1>
+          <span
+            className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider border ${
+              course.tier === "premium"
+                ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-300"
+                : course.tier === "basic"
+                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                  : "bg-zinc-800 border-zinc-700 text-zinc-400"
+            }`}
+          >
+            {course.tier} Access
+          </span>
+        </div>
 
+        {course.description && (
+          <p className="text-sm text-zinc-400 leading-relaxed max-w-2xl">{course.description}</p>
+        )}
+      </div>
+
+      {/* Lessons List or Locked Prompt */}
       {locked ? (
-        <div className="mt-8 rounded-lg border border-gray-200 bg-white p-8 text-center">
-          <p className="text-sm font-medium text-gray-900">
-            This course requires the {TIER_LABEL[course.tier]} plan.
-          </p>
-          <p className="mt-1 text-sm text-gray-500">
-            You&apos;re currently on {TIER_LABEL[userTier]}.
+        <div className="p-10 rounded-2xl bg-gradient-to-b from-zinc-900/80 to-zinc-950 border border-zinc-800 text-center flex flex-col items-center justify-center">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center mb-4">
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+              <path fillRule="evenodd" d="M12 1.5a4.5 4.5 0 00-4.5 4.5v3H6a2.25 2.25 0 00-2.25 2.25v9A2.25 2.25 0 006 22.5h12a2.25 2.25 0 002.25-2.25v-9A2.25 2.25 0 0018 9h-1.5V6a4.5 4.5 0 00-4.5-4.5zm3 7.5V6a3 3 0 10-6 0v3h6z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <h2 className="text-lg font-bold text-white mb-1">
+            This course requires the {TIER_LABEL[course.tier]} Plan
+          </h2>
+          <p className="text-xs text-zinc-400 max-w-md mb-6">
+            You are currently on the <span className="text-zinc-200 font-semibold">{TIER_LABEL[userTier]}</span> plan. Upgrade your plan to instantly unlock this curriculum and exercises.
           </p>
           <Link
             href="/dashboard/subscription"
-            className="mt-4 inline-block rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/20 transition-all hover:scale-105"
           >
-            Upgrade to unlock →
+            Upgrade Plan to Unlock →
           </Link>
         </div>
       ) : (
-        <div className="mt-8 space-y-3">
+        <div className="space-y-4">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            Course Curriculum & Lessons ({(lessons ?? []).length})
+          </h2>
+
           {(lessons ?? []).map((lesson, i) => (
             <div
               key={lesson.id}
-              className="rounded-lg border border-gray-200 bg-white p-4"
+              className="p-6 rounded-2xl bg-zinc-900/50 border border-zinc-800/80 hover:border-zinc-700 transition-all shadow-md"
             >
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-gray-400">
-                  {i + 1}
-                </span>
-                <h2 className="font-semibold text-gray-900">
-                  {lesson.title}
-                </h2>
+              <div className="flex items-start gap-4">
+                <div className="w-8 h-8 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-400 flex items-center justify-center text-xs font-mono font-bold shrink-0">
+                  {String(i + 1).padStart(2, "0")}
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-base font-semibold text-white mb-1">
+                    {lesson.title}
+                  </h3>
+                  {lesson.content && (
+                    <p className="text-xs text-zinc-400 leading-relaxed mb-3">
+                      {lesson.content}
+                    </p>
+                  )}
+                  {lesson.video_url && (
+                    <a
+                      href={lesson.video_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-medium hover:bg-indigo-500/20 transition-colors"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Watch Lesson Video
+                    </a>
+                  )}
+                </div>
               </div>
-              {lesson.content && (
-                <p className="mt-1 text-sm text-gray-600">
-                  {lesson.content}
-                </p>
-              )}
-              {lesson.video_url && (
-                <a
-                  href={lesson.video_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-2 inline-block text-sm font-medium text-indigo-600"
-                >
-                  Watch video →
-                </a>
-              )}
             </div>
           ))}
 
           {(lessons ?? []).length === 0 && (
-            <p className="text-sm text-gray-500">
-              No lessons published for this course yet.
-            </p>
+            <div className="p-8 text-center rounded-2xl bg-zinc-900/40 border border-zinc-800">
+              <p className="text-xs text-zinc-400">No lessons published for this course yet.</p>
+            </div>
           )}
         </div>
       )}
     </div>
   );
 }
+
