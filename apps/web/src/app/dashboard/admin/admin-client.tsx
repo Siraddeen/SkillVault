@@ -118,13 +118,17 @@ export function AdminClient({
       {/* Users Section */}
       <section className="rounded-2xl border border-zinc-800/90 bg-zinc-900/50 p-6 shadow-xl space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-white">Registered Users & Tier Permissions</h2>
-          <span className="text-xs text-zinc-500 font-mono">{users.length} Total Users</span>
+          <h2 className="text-base font-bold text-white">
+            Registered Users & Tier Permissions
+          </h2>
+          <span className="text-xs text-zinc-500 font-mono">
+            {users.length} Total Users
+          </span>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto overflow-y-auto max-h-[520px] rounded-lg border border-zinc-800/60">
           <table className="w-full text-left text-xs">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-zinc-900">
               <tr className="border-b border-zinc-800 text-zinc-400 uppercase tracking-wider text-[10px]">
                 <th className="py-3 px-4 font-semibold">User Email</th>
                 <th className="py-3 px-4 font-semibold">Access Tier</th>
@@ -135,8 +139,13 @@ export function AdminClient({
             </thead>
             <tbody className="divide-y divide-zinc-800/60">
               {users.map((u) => (
-                <tr key={u.id} className="hover:bg-zinc-800/40 transition-colors">
-                  <td className="py-3.5 px-4 font-mono text-zinc-200">{u.email}</td>
+                <tr
+                  key={u.id}
+                  className="hover:bg-zinc-800/40 transition-colors"
+                >
+                  <td className="py-3.5 px-4 font-mono text-zinc-200">
+                    {u.email}
+                  </td>
                   <td className="py-3.5 px-4">
                     <span
                       className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider border ${
@@ -150,7 +159,9 @@ export function AdminClient({
                       {u.tier}
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 text-zinc-400 font-mono">{u.subscription_status ?? "—"}</td>
+                  <td className="py-3.5 px-4 text-zinc-400 font-mono">
+                    {u.subscription_status ?? "—"}
+                  </td>
                   <td className="py-3.5 px-4">
                     {u.is_admin ? (
                       <span className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold">
@@ -180,7 +191,9 @@ export function AdminClient({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">Course Title</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">
+                Course Title
+              </label>
               <input
                 placeholder="e.g. Advanced PostgreSQL Architecture"
                 value={form.title}
@@ -191,7 +204,9 @@ export function AdminClient({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">URL Slug</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">
+                URL Slug
+              </label>
               <input
                 placeholder="e.g. postgresql-architecture"
                 value={form.slug}
@@ -202,7 +217,9 @@ export function AdminClient({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">Required Access Tier</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">
+                Required Access Tier
+              </label>
               <select
                 value={form.tier}
                 onChange={(e) => setForm({ ...form, tier: e.target.value })}
@@ -217,7 +234,9 @@ export function AdminClient({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">Thumbnail URL</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">
+                Thumbnail URL
+              </label>
               <input
                 placeholder="https://images.unsplash.com/..."
                 value={form.thumbnail_url}
@@ -229,12 +248,16 @@ export function AdminClient({
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-medium text-zinc-300 mb-1">Description</label>
+              <label className="block text-xs font-medium text-zinc-300 mb-1">
+                Description
+              </label>
               <textarea
                 placeholder="Detailed course description..."
                 rows={3}
                 value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, description: e.target.value })
+                }
                 className="w-full rounded-xl bg-zinc-950/80 border border-zinc-800 px-3.5 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
               />
             </div>
@@ -247,9 +270,24 @@ export function AdminClient({
               className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/20 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center gap-2"
             >
               {saving && (
-                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                <svg
+                  className="w-3.5 h-3.5 animate-spin"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
                 </svg>
               )}
               {saving
@@ -290,12 +328,16 @@ export function AdminClient({
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-white text-sm">{c.title}</span>
+                    <span className="font-semibold text-white text-sm">
+                      {c.title}
+                    </span>
                     <span className="px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-[10px] font-semibold uppercase text-zinc-400">
                       {c.tier}
                     </span>
                   </div>
-                  <span className="text-xs text-zinc-500 font-mono">/{c.slug}</span>
+                  <span className="text-xs text-zinc-500 font-mono">
+                    /{c.slug}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
@@ -320,4 +362,3 @@ export function AdminClient({
     </div>
   );
 }
-

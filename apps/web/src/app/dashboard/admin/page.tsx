@@ -17,16 +17,26 @@ export default async function AdminPage() {
 
   if (!profile?.is_admin) redirect("/dashboard");
 
-  const [{ data: courses }, { data: users }] = await Promise.all([
-    supabase
-      .from("courses")
-      .select("*")
-      .order("created_at", { ascending: false }),
-    supabase.rpc("admin_list_users"),
-  ]);
+  // const [{ data: courses }, { data: users }] = await Promise.all([
+  //   supabase
+  //     .from("courses")
+  //     .select("*")
+  //     .order("created_at", { ascending: false }),
+  //   supabase.rpc("admin_list_users"),
+  // ]);
+
+  const [{ data: courses }, { data: users, error: usersError }] =
+    await Promise.all([
+      supabase
+        .from("courses")
+        .select("*")
+        .order("created_at", { ascending: false }),
+      supabase.rpc("admin_list_users"),
+    ]);
+  if (usersError) console.error("admin_list_users failed:", usersError);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fade-in-up">
       {/* Header Banner */}
       <div className="flex items-center justify-between">
         <div>
@@ -34,9 +44,12 @@ export default async function AdminPage() {
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
             Administrative Control Panel
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">Platform Administration</h1>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">
+            Platform Administration
+          </h1>
           <p className="mt-1 text-sm text-zinc-400">
-            Manage course roadmaps, inspect user role tiers, and control platform content.
+            Manage course roadmaps, inspect user role tiers, and control
+            platform content.
           </p>
         </div>
       </div>
@@ -45,4 +58,3 @@ export default async function AdminPage() {
     </div>
   );
 }
-
