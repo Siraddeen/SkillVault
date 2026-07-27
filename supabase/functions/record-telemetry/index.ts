@@ -8,6 +8,7 @@
 // });
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getOptionalUser } from "../_shared/auth.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -17,11 +18,19 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...corsHeaders },
   });
 }
 
 Deno.serve(async (req: Request) => {
+  // Browser preflight - must be answered before the actual POST is allowed.
+  // (Same fix as create-order/verify-payment: this function is now called
+  // directly from the browser via supabase.functions.invoke on the course
+  // detail page, so it needs the same CORS handling.)
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   if (req.method !== "POST") {
     return jsonResponse({ error: "Method not allowed" }, 405);
   }

@@ -1,0 +1,6 @@
+[
+  { "name": "id", "type": "STRING", "mode": "REQUIRED" },
+  { "name": "user_id", "type": "STRING", "mode": "REQUIRED" },
+  { "name": "shown_at", "type": "TIMESTAMP", "mode": "REQUIRED" },
+  { "name": "created_at", "type": "TIMESTAMP", "mode": "REQUIRED" }
+]
